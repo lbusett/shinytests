@@ -1,7 +1,9 @@
 points_in_distance <- function(in_pts,
-                               dist,
+                               maxdist,
                                ncuts = 10) {
 
+  require(data.table)
+  require(sf)
   # convert points to data.table and create a unique identifier
   pts <-  data.table(in_pts)
   pts <- pts[, or_id := 1:dim(in_pts)[1]]
@@ -23,15 +25,15 @@ points_in_distance <- function(in_pts,
   for (cutx in unique(pts$xcut)) {
 
     # get the points included in a x-slice, then create an index over ycut
-    count <- 0
-    subpts_x <- pts[xcut == cutx] %>%
-      setkey(ycut)
+
+    # subpts_x <- pts[xcut == cutx] %>%
+    #   setkey(ycut)
 
     # get the points included in a x-slice, extended by `dist`, and build
     # an index over y
-    min_x_comp    <- ifelse(cutx == 1, limits_x[cutx], (limits_x[cutx] - dist))
-    max_x_comp    <- ifelse(cutx == ncuts, limits_x[cutx + 1], (limits_x[cutx + 1] + dist))
-    subpts_x_comp <- pts[x >= min_x_comp & x < max_x_comp] %>%
+    min_x_comp    <- ifelse(cutx == 1, limits_x[cutx], (limits_x[cutx] - maxdist))
+    max_x_comp    <- ifelse(cutx == ncuts, limits_x[cutx + 1], (limits_x[cutx + 1] + maxdist))
+    subpts_x <- pts[x >= min_x_comp & x < max_x_comp] %>%
       setkey(y)
 
     # # # get the points included in a x-slice, then create an index over ycut
@@ -43,34 +45,34 @@ points_in_distance <- function(in_pts,
 
       # Now find the points with which we need to "compare" the points in
       # subpts_y_buf
-      min_y_comp  <- ifelse(cuty == 1, limits_y[cuty], (limits_x[cuty] - dist))
-      max_y_comp  <- ifelse(cuty == ncuts, limits_x[cuty + 1], (limits_x[cuty + 1] + dist))
-      subpts_comp <- subpts_x_comp[y >= min_y_comp & y < max_y_comp]
+      min_y_comp  <- ifelse(cuty == 1, limits_y[cuty], (limits_x[cuty] - maxdist))
+      max_y_comp  <- ifelse(cuty == ncuts, limits_x[cuty + 1], (limits_x[cuty + 1] + maxdist))
+      subpts_comp <- subpts_x[y >= min_y_comp & y < max_y_comp]
       # %>%
       #   sf::st_as_sf()
        # subset over `y` coordinates and buffer. subpts_y_buf contains the points
       # which "neighbours" we want to find.
-      subpts_y <- subpts_x_comp[ycut == cuty & xcut == cutx]%>% sf::st_as_sf()
+      subpts_buf <- subpts_comp[ycut == cuty & xcut == cutx] %>%
+        sf::st_as_sf() %>%
+        st_buffer(maxdist)
 
       subpts_comp <- st_as_sf(subpts_comp)
       # subpts_y_buf <- subpts_y %>% sf::st_as_sf()
-      subpts_y_buf <- subpts_y %>%
-        st_buffer(dist)
+      # subpts_buf <- subpts %>%
+      #   st_buffer(maxdist)
 
 
       # compute the intersection and save results in a element of "results".
       # For each point, save its "or_id" and the "or_ids" of the points within "dist"
 
-      inters <- sf::st_intersects(subpts_y_buf, subpts_comp)
+      inters <- sf::st_intersects(subpts_buf, subpts_comp)
 
       # save results
       results[[count]] <- data.table(
-        id = subpts_y_buf$or_id,
+        id = subpts_buf$or_id,
         int_ids = lapply(inters, FUN = function(x) subpts_comp$or_id[x])
       )
     }
   }
-  out <- data.table::rbindlist(results)
-  # data.table::rbindlist(out)
-  out
+  data.table::rbindlist(results)
 }

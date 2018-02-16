@@ -6,7 +6,7 @@
 #' within a maximum distance of 5000 meters with respect to each single point in
 #' the dataset.
 #'
-#' If you have a look at the thread, you will see that  a simple solution based
+#' If you have a look at the thread, you will see that a simple solution based
 #' on creating a "buffered" polygon dataset beforehand and then intersecting it
 #' with the original points such as:
 
@@ -14,13 +14,13 @@ library(sf)
 library(magrittr)
 # create test data: 50000 uniformly distributed points on a "square" of 100000
 # metres
-dist <- 500
+maxdist <- 500
 pts     <- data.frame(x = runif(50000, 0, 100000),
                       y = runif(50000, 0, 100000),
                       id = 1:50000) %>%
   st_as_sf(coords = c("x", "y"))
 # create buffered polygons
-pts_buf <- sf::st_buffer(pts, dist)
+pts_buf <- sf::st_buffer(pts, maxdist)
 # Find points within 5000 meters wrt each point
 int <- sf::st_intersects(pts_buf, pts)
 int
@@ -30,9 +30,9 @@ int
 #' (See http://r-spatial.org/r/2017/06/22/spatial-index.html).
 #'
 #' However, for really large datasets this is not going to cut it, because the
-#' total number of comparisons to be done will still rapdily increase besides
-#' the use of spatial indexes. A small test done by changing the number of points
-#' in the above example showed for example this kind of behaviour:
+#' total number of comparisons to be done will still rapdily increase.
+#' A small test done by changing the number of points in the above example
+#' showed for example this kind of behaviour, for two different values of `maxdist`:
 #'
 npoints_list <- seq(25000, 500000, 25000)
 timings_vanilla <- NULL
