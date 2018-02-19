@@ -112,6 +112,8 @@ plot(pt_buff["x"])
 plot(sf::st_as_sf(pts)["x"], add = T, col = "green")
 plot(pt_inters["x"], add = T, col = "red")
 
+
+
 subpts_sf      <- pts[x >= limits[cut]  & x < limits[cut + 1]] %>% st_as_sf() %>%
   sf::st_buffer(dist)
 subpts_comp <- pts[x >= (limits[cut] - dist) & x < (limits[cut + 1] + dist)] %>% st_as_sf()
@@ -125,9 +127,22 @@ pts <- data.table(pts)
 
 
 
-
-
-
+pts     <- data.frame(x = runif(npoints, 0, 10000),
+                      y = runif(npoints, 0, 10000),
+                      id = 1:npoints) %>%
+  sf::st_as_sf(coords = c("x", "y"), remove = F)  %>%
+  data.table()
+range_x  <- range(pts$x)
+limits_x <-(range_x[1] + (0:ncuts)*(range_x[2] - range_x[1])/ncuts)
+range_y  <- range(pts$y)
+limits_y <- range_y[1] + (0:ncuts)*(range_y[2] - range_y[1])/ncuts
+pts[, `:=`(xcut =  as.integer(cut(x, ncuts, labels = 1:ncuts)),
+           ycut = as.integer(cut(y, ncuts, labels = 1:ncuts)))] %>%
+  setkey(xcut)
+subpts_x <- pts[xcut == cutx] %>%
+  setkey(ycut)
+subpts_x_comp <- pts[x >= min_x_comp & x < max_x_comp] %>%
+  setkey(y)
 aa <- subpts_x[ycut == cuty] %>%
   sf::st_as_sf() %>% st_bbox() %>% st_as_sfc()
 
@@ -168,6 +183,7 @@ predict(reg, newdata = data.frame(subs = 10E6))/60/60
 
 pts_buf <- sf::st_buffer(pts, 5000) %>%
   dplyr::mutate(x = pts$x, y = pts$y)
+
 
 pts <- data.frame(x = runif(15000000, 0, 100000),
                   y = runif(15000000, 0, 100000),
