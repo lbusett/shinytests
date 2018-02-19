@@ -249,8 +249,8 @@ dataset, this would be what we get:
 ```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
 reg_500_v <- with(subset(timings_vanilla, maxdist == 500), lm(time ~ npoints+I(npoints^2)))
 reg_2000_v <- with(subset(timings_vanilla, maxdist == 2000), lm(time ~ npoints+I(npoints^2)))
-v_500 <- predict(reg_500_v, newdata = data.frame(npoints = 10E6))/60/60
-v_2000 <-predict(reg_2000_v, newdata = data.frame(npoints = 10E6))/60/60
+v_500  <- predict(reg_500_v, newdata = data.frame(npoints = 10E6))/60/60
+v_2000 <- predict(reg_2000_v, newdata = data.frame(npoints = 10E6))/60/60
 
 reg_500_i <- with(subset(timings_dtint, maxdist == 500), lm(time ~ npoints+I(npoints^2)))
 reg_2000_i <- with(subset(timings_dtint, maxdist == 2000), lm(time ~ npoints+I(npoints^2)))
@@ -262,7 +262,15 @@ reg_2000_ip <- with(subset(timings_dtintpar, maxdist == 2000), lm(time ~ npoints
 ip_500  <-  predict(reg_500_ip, newdata = data.frame(npoints = 10E6))/60/60
 ip_2000 <- predict(reg_2000_ip, newdata = data.frame(npoints = 10E6))/60/60
 
-
+tab <- tibble::tribble(
+  ~Method, ~Maxdist, ~`Expected completion time (hours)`,
+  "st_intersect",   500, 15.0, 
+  "points_in_distance - serial",   500, 2.5 ,
+  "points_in_distance - parallel",  500,0.57, 
+  "st_intersect",   2000, 85.0, 
+  "points_in_distance - serial", 2000,  15.2,
+  "points_in_distance - parallel",   2000,  3.18 
+)
 
 
 ```
