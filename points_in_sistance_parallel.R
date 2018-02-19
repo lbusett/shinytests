@@ -1,6 +1,6 @@
 points_in_distance_parallel <- function(in_pts,
-                               maxdist,
-                               ncuts = 10) {
+                                        maxdist,
+                                        ncuts = 10) {
 
   require(doParallel)
   require(foreach)
@@ -31,10 +31,12 @@ points_in_distance_parallel <- function(in_pts,
 
     count <- 0
 
-    # get the points included in a x-slice, extended by `maxdist`, and build
+    # get the points included in a x-slice extended by `dist`, and build
     # an index over y
     min_x_comp    <- ifelse(cutx == 1, limits_x[cutx], (limits_x[cutx] - maxdist))
-    max_x_comp    <- ifelse(cutx == ncuts, limits_x[cutx + 1], (limits_x[cutx + 1] + maxdist))
+    max_x_comp    <- ifelse(cutx == ncuts,
+                            limits_x[cutx + 1],
+                            (limits_x[cutx + 1] + maxdist))
     subpts_x <- pts[x >= min_x_comp & x < max_x_comp] %>%
       setkey(y)
 
@@ -42,30 +44,38 @@ points_in_distance_parallel <- function(in_pts,
 
       count <- count + 1
 
-      min_y_comp  <- ifelse(cuty == 1, limits_y[cuty], (limits_x[cuty] - maxdist))
-      max_y_comp  <- ifelse(cuty == ncuts, limits_x[cuty + 1], (limits_x[cuty + 1] + maxdist))
+      # subset over subpts_x to find the final set of points needed for the
+      # comparisons
+      min_y_comp  <- ifelse(cuty == 1,
+                            limits_y[cuty],
+                            (limits_x[cuty] - maxdist))
+      max_y_comp  <- ifelse(cuty == ncuts,
+                            limits_x[cuty + 1],
+                            (limits_x[cuty + 1] + maxdist))
       subpts_comp <- subpts_x[y >= min_y_comp & y < max_y_comp]
 
+      # subset over subpts_comp to get the points included in a x/y chunk,
+      # which "neighbours" we want to find. Then buffer them.
       subpts_buf <- subpts_comp[ycut == cuty & xcut == cutx] %>%
         sf::st_as_sf() %>%
         st_buffer(maxdist)
 
-      subpts_comp <- st_as_sf(subpts_comp)
+      # retransform to sf since data.tables lost the geometric attrributes
+      subpts_comp <- sf::st_as_sf(subpts_comp)
+
+      # compute the intersection and save results in a element of "results".
+      # For each point, save its "or_id" and the "or_ids" of the points within "dist"
 
       inters <- sf::st_intersects(subpts_buf, subpts_comp)
 
+      # save results
       results[[count]] <- data.table(
         id = subpts_buf$or_id,
-        int_ids = lapply(inters, FUN = function(x) subpts_comp$or_id[x])
-
-      )
+        int_ids = lapply(inters, FUN = function(x) subpts_comp$or_id[x]))
 
     }
-
     return(data.table::rbindlist(results))
-
   }
-
   parallel::stopCluster(cl)
   data.table::rbindlist(out)
 }

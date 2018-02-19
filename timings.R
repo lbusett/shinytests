@@ -1,5 +1,5 @@
 npoints_list <- seq(25000, 475000, 50000)
-timings_vanilla <- NULL
+timings_st_intersect <- NULL
 for (maxdist in c(500, 2000)) {
   for (npoints in npoints_list) {
     pts     <- data.frame(x = runif(npoints, 0, 100000),
@@ -10,7 +10,7 @@ for (maxdist in c(500, 2000)) {
     pts_buf <- sf::st_buffer(pts, maxdist)
     out <- sf::st_intersects(pts_buf, pts)
     time = as.numeric(difftime(Sys.time() , t0, units = "secs"))
-    timings_vanilla <- rbind(timings_vanilla,
+    timings_st_intersect <- rbind(timings_st_intersect,
                              data.frame(npoints = npoints, time = time,
                                         maxdist = maxdist,
                                         method = "st_intersect"))
@@ -19,7 +19,7 @@ for (maxdist in c(500, 2000)) {
     gc()
   }
 }
-save(timings_vanilla, file = "vanilla.RData")
+save(timings_st_intersect, file = "st_intersect.RData")
 
 npoints_list <- seq(25000, 475000, 50000)
 timings_dtint <- NULL
